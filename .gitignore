@@ -1,0 +1,4 @@
+node_modules/
+testes/node_modules/
+testes/test-results/
+testes/playwright-report/
