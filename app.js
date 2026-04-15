@@ -32,8 +32,10 @@ function logout() {
 }
 
 // --- SEED: cartas iniciais ---
+const SEED_VERSION = 'v2';
 function seedCards() {
-  if (getCards().length > 0) return;
+  if (localStorage.getItem('seed_version') === SEED_VERSION) return;
+  localStorage.removeItem(DB_CARDS);
   const initial = [
     { id: 1,  name: 'Charizard',   type: 'Fogo',      price: 250.00, image: 'https://images.pokemontcg.io/base1/4_hires.png',   stock: 3 },
     { id: 2,  name: 'Blastoise',   type: 'Água',      price: 180.00, image: 'https://images.pokemontcg.io/base1/2_hires.png',   stock: 5 },
@@ -57,6 +59,7 @@ function seedCards() {
     { id: 20, name: 'Hitmonchan',  type: 'Lutador',   price: 115.00, image: 'https://images.pokemontcg.io/base1/7_hires.png',   stock: 5 },
   ];
   saveCards(initial);
+  localStorage.setItem('seed_version', SEED_VERSION);
 }
 
 // --- RENDERIZAR CARDS NA INDEX ---
