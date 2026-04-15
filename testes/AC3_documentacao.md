@@ -188,7 +188,7 @@
 | CT-08b | API TCG válida (Pikachu) | ✅ PASSOU | Status 200, 3 cartas retornadas |
 | CT-09 | API TCG carta inexistente | ✅ PASSOU | Status 200, data: [] |
 | CT-09b | API TCG endpoint inválido | ✅ PASSOU | Status 404 conforme esperado |
-| CT-10 | GitHub Pages disponibilidade | ❌ FALHOU | Status 404 — GitHub Pages não ativado |
+| CT-10 | GitHub Pages disponibilidade | ✅ PASSOU | Status 200 — site acessível em https://willzao03.github.io/Loja-Pokemon-projeto/ |
 | CT-10b | Repositório GitHub acessível | ✅ PASSOU | Status 200 |
 | CT-11 | API TCG campos obrigatórios | ✅ PASSOU | Campos id, name, images presentes |
 | CT-12 | API TCG tempo de resposta | ✅ PASSOU | 0.52s (< 5s) |
@@ -249,14 +249,13 @@ Ver arquivos:
 
 ## PASSO 9 – Bugs Identificados
 
-### BUG-01 – GitHub Pages não ativado
+### BUG-01 – GitHub Pages ✅ RESOLVIDO
 | Campo | Descrição |
 |---|---|
-| Título | Sistema não acessível via URL pública |
-| Descrição | O repositório existe no GitHub mas o GitHub Pages não foi ativado, impedindo acesso via URL pública |
-| Como reproduzir | Acessar `https://willzao03.github.io/Loja-Pokemon-projeto/` |
-| Impacto | Alto — sistema não pode ser avaliado online sem deploy |
-| Sugestão | Ativar GitHub Pages em Settings > Pages > Branch: main |
+| Título | Sistema acessível via URL pública |
+| Descrição | GitHub Pages foi ativado com sucesso |
+| URL | https://willzao03.github.io/Loja-Pokemon-projeto/ |
+| Status | ✅ Resolvido — Status 200 confirmado em teste automatizado |
 
 ---
 
