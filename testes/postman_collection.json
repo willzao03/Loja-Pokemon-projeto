@@ -1,0 +1,245 @@
+{
+  "info": {
+    "name": "AC3 – Loja Pokémon | UNIFECAF",
+    "description": "Testes automatizados da Loja Pokémon para AC3 de Quality Assurance.\nGrupo: Vinnicius, Matheus, Willian, Gabriel.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "API Pokémon TCG",
+      "item": [
+        {
+          "name": "CT-08 | Busca válida – Charizard",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Retorna ao menos 1 carta', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.data.length).to.be.above(0);",
+                  "});",
+                  "pm.test('Carta contém campo name', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.data[0]).to.have.property('name');",
+                  "});",
+                  "console.log('Cartas retornadas:', pm.response.json().data.length);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "https://api.pokemontcg.io/v2/cards?q=name:Charizard&pageSize=1",
+              "protocol": "https",
+              "host": ["api", "pokemontcg", "io"],
+              "path": ["v2", "cards"],
+              "query": [
+                { "key": "q", "value": "name:Charizard" },
+                { "key": "pageSize", "value": "1" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "CT-08b | Busca válida – Pikachu",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Retorna ao menos 1 carta', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.data.length).to.be.above(0);",
+                  "});",
+                  "console.log('Cartas retornadas:', pm.response.json().data.length);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "https://api.pokemontcg.io/v2/cards?q=name:Pikachu&pageSize=3",
+              "protocol": "https",
+              "host": ["api", "pokemontcg", "io"],
+              "path": ["v2", "cards"],
+              "query": [
+                { "key": "q", "value": "name:Pikachu" },
+                { "key": "pageSize", "value": "3" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "CT-09 | Carta inexistente – data vazio",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('data deve ser array vazio', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.data).to.be.an('array');",
+                  "    pm.expect(json.data.length).to.equal(0);",
+                  "});",
+                  "console.log('data:', pm.response.json().data);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "https://api.pokemontcg.io/v2/cards?q=name:CARTAINEXISTENTE999XYZ",
+              "protocol": "https",
+              "host": ["api", "pokemontcg", "io"],
+              "path": ["v2", "cards"],
+              "query": [
+                { "key": "q", "value": "name:CARTAINEXISTENTE999XYZ" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "CT-09b | Endpoint inválido – 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 404 para endpoint inválido', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "console.log('Status:', pm.response.status);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "https://api.pokemontcg.io/v2/cartasinvalidas",
+              "protocol": "https",
+              "host": ["api", "pokemontcg", "io"],
+              "path": ["v2", "cartasinvalidas"]
+            }
+          }
+        },
+        {
+          "name": "CT-11 | Campos obrigatórios – Mewtwo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Carta possui campo id', function () {",
+                  "    pm.expect(pm.response.json().data[0]).to.have.property('id');",
+                  "});",
+                  "pm.test('Carta possui campo name', function () {",
+                  "    pm.expect(pm.response.json().data[0]).to.have.property('name');",
+                  "});",
+                  "pm.test('Carta possui campo images', function () {",
+                  "    pm.expect(pm.response.json().data[0]).to.have.property('images');",
+                  "});",
+                  "pm.test('Tempo de resposta menor que 5000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(5000);",
+                  "});",
+                  "console.log('Tempo de resposta:', pm.response.responseTime + 'ms');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "https://api.pokemontcg.io/v2/cards?q=name:Mewtwo&pageSize=1",
+              "protocol": "https",
+              "host": ["api", "pokemontcg", "io"],
+              "path": ["v2", "cards"],
+              "query": [
+                { "key": "q", "value": "name:Mewtwo" },
+                { "key": "pageSize", "value": "1" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Google Cloud / GitHub Pages",
+      "item": [
+        {
+          "name": "CT-10 | GitHub Pages – Disponibilidade",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 – site no ar', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Resposta contém HTML', function () {",
+                  "    pm.expect(pm.response.text()).to.include('<!DOCTYPE html>');",
+                  "});",
+                  "pm.test('Tempo de resposta menor que 5000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(5000);",
+                  "});",
+                  "console.log('Status:', pm.response.status);",
+                  "console.log('Tempo:', pm.response.responseTime + 'ms');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "https://willzao03.github.io/Loja-Pokemon-projeto/",
+              "protocol": "https",
+              "host": ["willzao03", "github", "io"],
+              "path": ["Loja-Pokemon-projeto", ""]
+            }
+          }
+        },
+        {
+          "name": "CT-10b | Repositório GitHub – Acessível",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 – repositório público acessível', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "console.log('Status:', pm.response.status);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "https://github.com/willzao03/Loja-Pokemon-projeto",
+              "protocol": "https",
+              "host": ["github", "com"],
+              "path": ["willzao03", "Loja-Pokemon-projeto"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
