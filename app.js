@@ -35,12 +35,26 @@ function logout() {
 function seedCards() {
   if (getCards().length > 0) return;
   const initial = [
-    { id: 1, name: 'Charizard', type: 'Fogo', price: 250.00, image: 'https://images.pokemontcg.io/base1/4_hires.png', stock: 3 },
-    { id: 2, name: 'Blastoise', type: 'Água', price: 180.00, image: 'https://images.pokemontcg.io/base1/2_hires.png', stock: 5 },
-    { id: 3, name: 'Venusaur', type: 'Planta', price: 160.00, image: 'https://images.pokemontcg.io/base1/15_hires.png', stock: 4 },
-    { id: 4, name: 'Pikachu', type: 'Elétrico', price: 90.00, image: 'https://images.pokemontcg.io/base1/58_hires.png', stock: 10 },
-    { id: 5, name: 'Mewtwo', type: 'Psíquico', price: 320.00, image: 'https://images.pokemontcg.io/base1/10_hires.png', stock: 2 },
-    { id: 6, name: 'Gengar', type: 'Fantasma', price: 210.00, image: 'https://images.pokemontcg.io/base1/5_hires.png', stock: 3 },
+    { id: 1,  name: 'Charizard',   type: 'Fogo',      price: 250.00, image: 'https://images.pokemontcg.io/base1/4_hires.png',   stock: 3 },
+    { id: 2,  name: 'Blastoise',   type: 'Água',      price: 180.00, image: 'https://images.pokemontcg.io/base1/2_hires.png',   stock: 5 },
+    { id: 3,  name: 'Venusaur',    type: 'Planta',    price: 160.00, image: 'https://images.pokemontcg.io/base1/15_hires.png',  stock: 4 },
+    { id: 4,  name: 'Pikachu',     type: 'Elétrico',  price: 90.00,  image: 'https://images.pokemontcg.io/base1/58_hires.png',  stock: 10 },
+    { id: 5,  name: 'Mewtwo',      type: 'Psíquico',  price: 320.00, image: 'https://images.pokemontcg.io/base1/10_hires.png',  stock: 2 },
+    { id: 6,  name: 'Gengar',      type: 'Fantasma',  price: 210.00, image: 'https://images.pokemontcg.io/base1/5_hires.png',   stock: 3 },
+    { id: 7,  name: 'Alakazam',    type: 'Psíquico',  price: 195.00, image: 'https://images.pokemontcg.io/base1/1_hires.png',   stock: 4 },
+    { id: 8,  name: 'Machamp',     type: 'Lutador',   price: 140.00, image: 'https://images.pokemontcg.io/base1/8_hires.png',   stock: 6 },
+    { id: 9,  name: 'Ninetales',   type: 'Fogo',      price: 130.00, image: 'https://images.pokemontcg.io/base1/12_hires.png',  stock: 5 },
+    { id: 10, name: 'Gyarados',    type: 'Água',      price: 175.00, image: 'https://images.pokemontcg.io/base1/6_hires.png',   stock: 3 },
+    { id: 11, name: 'Clefairy',    type: 'Normal',    price: 75.00,  image: 'https://images.pokemontcg.io/base1/5_hires.png',   stock: 8 },
+    { id: 12, name: 'Zapdos',      type: 'Elétrico',  price: 280.00, image: 'https://images.pokemontcg.io/base1/16_hires.png',  stock: 2 },
+    { id: 13, name: 'Moltres',     type: 'Fogo',      price: 270.00, image: 'https://images.pokemontcg.io/base1/12_hires.png',  stock: 2 },
+    { id: 14, name: 'Articuno',    type: 'Gelo',      price: 265.00, image: 'https://images.pokemontcg.io/base1/17_hires.png',  stock: 2 },
+    { id: 15, name: 'Raichu',      type: 'Elétrico',  price: 110.00, image: 'https://images.pokemontcg.io/base1/14_hires.png',  stock: 5 },
+    { id: 16, name: 'Poliwrath',   type: 'Água',      price: 120.00, image: 'https://images.pokemontcg.io/base1/13_hires.png',  stock: 4 },
+    { id: 17, name: 'Nidoking',    type: 'Veneno',    price: 145.00, image: 'https://images.pokemontcg.io/base1/11_hires.png',  stock: 4 },
+    { id: 18, name: 'Magneton',    type: 'Elétrico',  price: 95.00,  image: 'https://images.pokemontcg.io/base1/9_hires.png',   stock: 6 },
+    { id: 19, name: 'Electabuzz',  type: 'Elétrico',  price: 100.00, image: 'https://images.pokemontcg.io/base1/20_hires.png',  stock: 5 },
+    { id: 20, name: 'Hitmonchan',  type: 'Lutador',   price: 115.00, image: 'https://images.pokemontcg.io/base1/7_hires.png',   stock: 5 },
   ];
   saveCards(initial);
 }
