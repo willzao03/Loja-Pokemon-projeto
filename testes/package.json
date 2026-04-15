@@ -1,0 +1,12 @@
+{
+  "name": "loja-pokemon-testes",
+  "version": "1.0.0",
+  "description": "AC3 – Testes automatizados Loja Pokémon – UNIFECAF",
+  "scripts": {
+    "test:api": "python test_api.py",
+    "test:ui": "npx playwright test test_sistema.js --reporter=list"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.44.0"
+  }
+}
