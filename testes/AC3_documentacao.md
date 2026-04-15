@@ -184,9 +184,14 @@
 | CT-05 | Excluir inexistente | ✅ PASSOU | Exibiu "Carta não encontrada", sistema estável |
 | CT-06 | Adicionar carrinho | ✅ PASSOU | Item apareceu no carrinho, badge atualizado |
 | CT-07 | Busca sem resultado | ✅ PASSOU | Exibiu "Nenhuma carta encontrada" |
-| CT-08 | API TCG válida | ✅ PASSOU | Status 200, dados retornados corretamente |
-| CT-09 | API TCG inválida | ✅ PASSOU | Status 200, data: [] |
-| CT-10 | GitHub Pages | ⚠️ PENDENTE | Requer ativação do GitHub Pages nas configurações |
+| CT-08 | API TCG válida (Charizard) | ✅ PASSOU | Status 200, 1 carta retornada |
+| CT-08b | API TCG válida (Pikachu) | ✅ PASSOU | Status 200, 3 cartas retornadas |
+| CT-09 | API TCG carta inexistente | ✅ PASSOU | Status 200, data: [] |
+| CT-09b | API TCG endpoint inválido | ✅ PASSOU | Status 404 conforme esperado |
+| CT-10 | GitHub Pages disponibilidade | ❌ FALHOU | Status 404 — GitHub Pages não ativado |
+| CT-10b | Repositório GitHub acessível | ✅ PASSOU | Status 200 |
+| CT-11 | API TCG campos obrigatórios | ✅ PASSOU | Campos id, name, images presentes |
+| CT-12 | API TCG tempo de resposta | ✅ PASSOU | 0.52s (< 5s) |
 
 ---
 
