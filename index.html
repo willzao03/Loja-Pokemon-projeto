@@ -4,9 +4,39 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Loja Pokémon</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>Bem-vindo à Loja Pokémon</h1>
-  <p>Em construção...</p>
+
+  <header>
+    <a class="logo" href="index.html">
+      <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png" alt="Pokébola">
+      <span>Loja Pokémon</span>
+    </a>
+    <nav>
+      <a href="index.html">Início</a>
+      <a href="admin.html">Admin</a>
+      <span id="nav-user"></span>
+      <a class="btn-login" href="login.html">Login</a>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <h1>Compre e venda cartas Pokémon</h1>
+    <p>As melhores cartas colecionáveis em um só lugar</p>
+    <div class="search-bar">
+      <input id="search-input" type="text" placeholder="Buscar carta por nome ou tipo...">
+      <button id="btn-search">Buscar</button>
+    </div>
+  </section>
+
+  <h2 class="section-title">Cartas Disponíveis</h2>
+  <div class="cards-grid" id="cards-grid"></div>
+
+  <footer>
+    <p>Loja Pokémon &copy; 2025 — UNIFECAF | Projeto de E-commerce</p>
+  </footer>
+
+  <script src="app.js"></script>
 </body>
 </html>

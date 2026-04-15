@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — Loja Pokémon</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <a class="logo" href="index.html">
+      <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png" alt="Pokébola">
+      <span>Loja Pokémon</span>
+    </a>
+    <nav>
+      <a href="index.html">Início</a>
+    </nav>
+  </header>
+
+  <!-- LOGIN -->
+  <div id="section-login" class="login-container">
+    <h2>Entrar</h2>
+    <form id="form-login">
+      <input id="login-user" type="text" placeholder="Usuário" required>
+      <input id="login-pass" type="password" placeholder="Senha" required>
+      <button type="submit">Entrar</button>
+    </form>
+    <div id="msg-login" class="msg"></div>
+    <p class="toggle">Não tem conta? <a id="link-cadastro">Cadastre-se</a></p>
+  </div>
+
+  <!-- CADASTRO -->
+  <div id="section-cadastro" class="login-container hidden">
+    <h2>Criar Conta</h2>
+    <form id="form-cadastro">
+      <input id="cad-user" type="text" placeholder="Usuário" required>
+      <input id="cad-pass" type="password" placeholder="Senha" required>
+      <button type="submit">Cadastrar</button>
+    </form>
+    <div id="msg-cadastro" class="msg"></div>
+    <p class="toggle">Já tem conta? <a id="link-login">Fazer login</a></p>
+  </div>
+
+  <footer>
+    <p>Loja Pokémon &copy; 2025 — UNIFECAF | Projeto de E-commerce</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
