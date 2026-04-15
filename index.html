@@ -17,6 +17,7 @@
       <a href="index.html">Início</a>
       <a href="admin.html">Admin</a>
       <span id="nav-user"></span>
+      <a href="#" onclick="openCart()" class="cart-btn">🛒 <span id="cart-badge" class="cart-badge" style="display:none">0</span></a>
       <a class="btn-login" href="login.html">Login</a>
     </nav>
   </header>
@@ -30,8 +31,42 @@
     </div>
   </section>
 
+  <!-- FILTROS -->
+  <div class="filters-bar">
+    <div id="type-filters" class="type-filters"></div>
+    <select id="sort-select" class="sort-select">
+      <option value="name">Nome A-Z</option>
+      <option value="price-asc">Menor preço</option>
+      <option value="price-desc">Maior preço</option>
+    </select>
+  </div>
+
   <h2 class="section-title">Cartas Disponíveis</h2>
   <div class="cards-grid" id="cards-grid"></div>
+
+  <!-- MODAL DETALHE -->
+  <div id="card-modal" class="modal hidden">
+    <div class="modal-content">
+      <button class="modal-close" onclick="closeModal()">✕</button>
+      <img id="modal-img" src="" alt="carta">
+      <div class="modal-info">
+        <span id="modal-type" class="type-badge"></span>
+        <h2 id="modal-name"></h2>
+        <p id="modal-price" class="price"></p>
+        <p id="modal-stock" style="color:#aaa;font-size:0.9rem"></p>
+        <button id="modal-buy" class="btn-buy" style="margin-top:16px;width:100%">🛒 Adicionar ao Carrinho</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CARRINHO -->
+  <div id="cart-panel" class="cart-panel hidden">
+    <div class="cart-header">
+      <h3>Carrinho</h3>
+      <button onclick="closeCart()">✕</button>
+    </div>
+    <div id="cart-list"></div>
+  </div>
 
   <footer>
     <p>Loja Pokémon &copy; 2025 — UNIFECAF | Projeto de E-commerce</p>

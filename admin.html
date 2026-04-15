@@ -20,9 +20,9 @@
     </nav>
   </header>
 
-  <!-- INSERIR CARTA -->
+  <!-- INSERIR -->
   <div class="admin-panel">
-    <h2>Inserir Nova Carta</h2>
+    <h2>➕ Inserir Nova Carta</h2>
     <form id="form-insert">
       <input id="card-name"  type="text"   placeholder="Nome da carta *" required>
       <input id="card-type"  type="text"   placeholder="Tipo (ex: Fogo, Água) *" required>
@@ -34,9 +34,28 @@
     <div id="msg-insert" class="msg"></div>
   </div>
 
-  <!-- EXCLUIR CARTA -->
+  <!-- EDITAR -->
   <div class="admin-panel" style="margin-top:20px">
-    <h2>Excluir Carta</h2>
+    <h2>✏️ Editar Carta</h2>
+    <form id="form-edit-search">
+      <input id="edit-search" type="text" placeholder="Nome exato da carta" required>
+      <button type="submit">Buscar</button>
+    </form>
+    <form id="form-edit" class="hidden" style="margin-top:16px">
+      <input id="edit-id" type="hidden">
+      <input id="edit-name"  type="text"   placeholder="Nome *" required>
+      <input id="edit-type"  type="text"   placeholder="Tipo *" required>
+      <input id="edit-price" type="number" placeholder="Preço (R$) *" step="0.01" required>
+      <input id="edit-stock" type="number" placeholder="Estoque *" min="0" required>
+      <input id="edit-image" type="url"    placeholder="URL da imagem">
+      <button type="submit">Salvar Alterações</button>
+    </form>
+    <div id="msg-edit" class="msg"></div>
+  </div>
+
+  <!-- EXCLUIR -->
+  <div class="admin-panel" style="margin-top:20px">
+    <h2>🗑️ Excluir Carta</h2>
     <form id="form-delete">
       <input id="delete-name" type="text" placeholder="Nome exato da carta" required>
       <button type="submit" style="background:#6b1a1a">Excluir Carta</button>
