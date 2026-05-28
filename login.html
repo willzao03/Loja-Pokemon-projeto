@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-Frame-Options" content="DENY">
+  <meta http-equiv="Content-Security-Policy" content="frame-ancestors 'none'">
   <title>Login — Loja Pokémon</title>
   <link rel="stylesheet" href="style.css">
   <style>
@@ -37,16 +39,36 @@
   <div id="section-cadastro" class="login-container hidden">
     <h2>Criar Conta</h2>
     <form id="form-cadastro">
-      <input id="cad-user" type="text" placeholder="Usuário" required>
-      <input id="cad-pass" type="password" placeholder="Senha" required>
-      <button type="submit">Cadastrar</button>
+      <input id="cad-user" type="text" placeholder="Usuário" required autocomplete="username">
+
+      <div class="password-wrapper">
+        <input id="cad-pass" type="password" placeholder="Senha" required autocomplete="new-password">
+        <button type="button" class="toggle-pass" aria-label="Mostrar senha" onclick="togglePasswordVisibility('cad-pass', this)">👁</button>
+      </div>
+
+      <!-- Barra de força colada ao campo -->
+      <div class="strength-bar-wrap" id="strength-bar-wrap">
+        <div class="strength-bar" id="strength-bar"></div>
+      </div>
+      <p class="strength-label" id="strength-label">&nbsp;</p>
+
+      <!-- Checklist de requisitos -->
+      <ul class="password-checklist" id="password-checklist">
+        <li id="req-length">  <span class="req-icon">✗</span> Mínimo 8 caracteres</li>
+        <li id="req-upper">   <span class="req-icon">✗</span> Uma letra maiúscula</li>
+        <li id="req-lower">   <span class="req-icon">✗</span> Uma letra minúscula</li>
+        <li id="req-number">  <span class="req-icon">✗</span> Um número</li>
+        <li id="req-special"> <span class="req-icon">✗</span> Um caractere especial (!@#$...)</li>
+      </ul>
+
+      <button type="submit" id="btn-cadastrar" disabled>Cadastrar</button>
     </form>
     <div id="msg-cadastro" class="msg"></div>
     <p class="toggle">Já tem conta? <a id="link-login">Fazer login</a></p>
   </div>
 
   <footer>
-    <p>Loja Pokémon &copy; 2025 — UNIFECAF | Projeto de E-commerce</p>
+    <p>Loja Pokémon &copy; 2026 — UNIFECAF | Projeto de E-commerce</p>
   </footer>
 
   <script src="app.js"></script>

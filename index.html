@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-Frame-Options" content="DENY">
+  <meta http-equiv="Content-Security-Policy" content="frame-ancestors 'none'">
   <title>Loja Pokémon</title>
   <link rel="stylesheet" href="style.css">
 </head>
@@ -15,7 +17,7 @@
     </a>
     <nav>
       <a href="index.html">Início</a>
-      <a href="admin.html">Admin</a>
+      <a href="admin.html" onclick="return checkLoginBeforeVender(event)">🏷️ Vender</a>
       <span id="nav-user"></span>
       <a href="#" onclick="openCart()" class="cart-btn">🛒 <span id="cart-badge" class="cart-badge" style="display:none">0</span></a>
       <a class="btn-login" href="login.html">Login</a>
@@ -69,9 +71,20 @@
   </div>
 
   <footer>
-    <p>Loja Pokémon &copy; 2025 — UNIFECAF | Projeto de E-commerce</p>
+    <p>Loja Pokémon &copy; 2026 — UNIFECAF | Projeto de E-commerce</p>
   </footer>
 
   <script src="app.js"></script>
+  <script>
+    function checkLoginBeforeVender(e) {
+      if (!isSessionValid()) {
+        e.preventDefault();
+        showToast('Faça login para acessar a área de vendas.');
+        setTimeout(() => { window.location.href = 'login.html'; }, 1500);
+        return false;
+      }
+      return true;
+    }
+  </script>
 </body>
 </html>

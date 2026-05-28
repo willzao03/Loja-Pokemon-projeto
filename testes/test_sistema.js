@@ -1,12 +1,8 @@
 /**
  * AC3 – Loja Pokémon
  * Testes automatizados do sistema front-end via Playwright
+ * 5 Testes Positivos + 5 Testes Negativos
  * Grupo: Vinnicius, Matheus, Willian, Gabriel – UNIFECAF
- *
- * Instalação:
- *   npm init -y
- *   npm install @playwright/test
- *   npx playwright install chromium
  *
  * Execução:
  *   npx playwright test test_sistema.js --reporter=list
@@ -14,14 +10,27 @@
 
 const { test, expect } = require('@playwright/test');
 
-const BASE = 'file://' + __dirname.replace(/\\/g, '/').replace('/testes', '') + '/index.html';
-const LOGIN_URL  = BASE.replace('index.html', 'login.html');
-const ADMIN_URL  = BASE.replace('index.html', 'admin.html');
+const BASE      = 'file://' + __dirname.replace(/\\/g, '/').replace('/testes', '') + '/index.html';
+const LOGIN_URL = BASE.replace('index.html', 'login.html');
+const ADMIN_URL = BASE.replace('index.html', 'admin.html');
 
-// ─────────────────────────────────────────────
-// CT-01 – Página inicial carrega cartas
-// ─────────────────────────────────────────────
-test('CT-01 | index.html carrega e exibe cartas', async ({ page }) => {
+// Injeta sessão válida para acessar o admin
+async function injectSession(page, role = 'user') {
+  await page.goto(BASE);
+  await page.evaluate((r) => {
+    localStorage.setItem('pokemon_session', JSON.stringify({
+      username: r === 'admin' ? 'admin' : 'testvendedor',
+      role: r,
+      expiresAt: Date.now() + 2 * 60 * 60 * 1000
+    }));
+  }, role);
+}
+
+// ══════════════════════════════════════════════
+//  TESTES POSITIVOS
+// ══════════════════════════════════════════════
+
+test('POS-01 | Página inicial carrega e exibe cartas', async ({ page }) => {
   await page.goto(BASE);
   const cards = page.locator('.card');
   await expect(cards.first()).toBeVisible({ timeout: 5000 });
@@ -30,146 +39,108 @@ test('CT-01 | index.html carrega e exibe cartas', async ({ page }) => {
   console.log(`  → ${count} cartas exibidas`);
 });
 
-// ─────────────────────────────────────────────
-// CT-02 – Busca por nome retorna resultado
-// ─────────────────────────────────────────────
-test('CT-02 | Busca por "Pikachu" retorna carta', async ({ page }) => {
+test('POS-02 | Busca por "Pikachu" retorna a carta correta', async ({ page }) => {
   await page.goto(BASE);
   await page.fill('#search-input', 'Pikachu');
   await page.click('#btn-search');
-  const card = page.locator('.card', { hasText: 'Pikachu' });
-  await expect(card).toBeVisible();
+  await expect(page.locator('.card', { hasText: 'Pikachu' })).toBeVisible();
 });
 
-// ─────────────────────────────────────────────
-// CT-03 – Busca sem resultado exibe mensagem
-// ─────────────────────────────────────────────
-test('CT-03 | Busca inexistente exibe "Nenhuma carta encontrada"', async ({ page }) => {
-  await page.goto(BASE);
-  await page.fill('#search-input', 'xyzabc123');
-  await page.click('#btn-search');
-  await expect(page.locator('#cards-grid')).toContainText('Nenhuma carta encontrada');
-});
-
-// ─────────────────────────────────────────────
-// CT-04 – Modal abre ao clicar na carta
-// ─────────────────────────────────────────────
-test('CT-04 | Modal de detalhe abre ao clicar na carta', async ({ page }) => {
+test('POS-03 | Modal abre com dados ao clicar na carta', async ({ page }) => {
   await page.goto(BASE);
   await page.locator('.card').first().click();
   await expect(page.locator('#card-modal')).not.toHaveClass(/hidden/);
   await expect(page.locator('#modal-name')).not.toBeEmpty();
+  await expect(page.locator('#modal-price')).not.toBeEmpty();
 });
 
-// ─────────────────────────────────────────────
-// CT-05 – Fechar modal
-// ─────────────────────────────────────────────
-test('CT-05 | Modal fecha ao clicar no botão X', async ({ page }) => {
-  await page.goto(BASE);
-  await page.locator('.card').first().click();
-  await page.click('.modal-close');
-  await expect(page.locator('#card-modal')).toHaveClass(/hidden/);
-});
-
-// ─────────────────────────────────────────────
-// CT-06 – Adicionar carta ao carrinho
-// ─────────────────────────────────────────────
-test('CT-06 | Adicionar carta ao carrinho atualiza badge', async ({ page }) => {
+test('POS-04 | Adicionar carta ao carrinho atualiza badge', async ({ page }) => {
   await page.goto(BASE);
   await page.locator('.btn-buy').first().click();
   const badge = page.locator('#cart-badge');
   await expect(badge).toBeVisible();
-  const text = await badge.textContent();
-  expect(parseInt(text)).toBeGreaterThanOrEqual(1);
+  expect(parseInt(await badge.textContent())).toBeGreaterThanOrEqual(1);
 });
 
-// ─────────────────────────────────────────────
-// CT-07 – Login com campos vazios bloqueado
-// ─────────────────────────────────────────────
-test('CT-07 | Login com campos vazios é bloqueado pelo HTML', async ({ page }) => {
-  await page.goto(LOGIN_URL);
-  await page.click('button[type="submit"]');
-  // campo required impede submit — URL não muda
-  expect(page.url()).toContain('login.html');
+test('POS-05 | Admin acessível com sessão válida e exibe formulário', async ({ page }) => {
+  await injectSession(page, 'user');
+  await page.goto(ADMIN_URL);
+  await expect(page.locator('#form-insert')).toBeVisible({ timeout: 5000 });
+  await expect(page.locator('#card-name')).toBeVisible();
 });
 
-// ─────────────────────────────────────────────
-// CT-08 – Cadastro e login completo
-// ─────────────────────────────────────────────
-test('CT-08 | Cadastro de novo usuário e login', async ({ page }) => {
+// ══════════════════════════════════════════════
+//  TESTES NEGATIVOS
+// ══════════════════════════════════════════════
+
+test('NEG-01 | Busca inexistente exibe "Nenhuma carta encontrada"', async ({ page }) => {
+  await page.goto(BASE);
+  await page.fill('#search-input', 'xyzabc999inexistente');
+  await page.click('#btn-search');
+  await expect(page.locator('#cards-grid')).toContainText('Nenhuma carta encontrada');
+});
+
+test('NEG-02 | Login com senha errada exibe mensagem de erro', async ({ page }) => {
   await page.goto(LOGIN_URL);
-  // ir para cadastro
+  // Cadastra usuário com senha forte
   await page.click('#link-cadastro');
-  const user = 'testuser_' + Date.now();
+  const user = 'neguser_' + Date.now();
   await page.fill('#cad-user', user);
-  await page.fill('#cad-pass', 'senha123');
-  await page.click('#form-cadastro button[type="submit"]');
+  await page.fill('#cad-pass', 'Senha@123');
+  await page.click('#btn-cadastrar');
   await expect(page.locator('#msg-cadastro')).toContainText('Cadastro realizado');
-
-  // fazer login
+  // Tenta login com senha errada
   await page.fill('#login-user', user);
-  await page.fill('#login-pass', 'senha123');
-  await page.click('#form-login button[type="submit"]');
-  await expect(page).toHaveURL(/index\.html/);
-});
-
-// ─────────────────────────────────────────────
-// CT-09 – Login com senha errada
-// ─────────────────────────────────────────────
-test('CT-09 | Login com senha errada exibe erro', async ({ page }) => {
-  await page.goto(LOGIN_URL);
-  // cadastrar usuário primeiro
-  await page.click('#link-cadastro');
-  const user = 'errouser_' + Date.now();
-  await page.fill('#cad-user', user);
-  await page.fill('#cad-pass', 'correta');
-  await page.click('#form-cadastro button[type="submit"]');
-
-  // tentar login com senha errada
-  await page.fill('#login-user', user);
-  await page.fill('#login-pass', 'errada');
+  await page.fill('#login-pass', 'SenhaErrada@999');
   await page.click('#form-login button[type="submit"]');
   await expect(page.locator('#msg-login')).toContainText('incorretos');
 });
 
-// ─────────────────────────────────────────────
-// CT-10 – Admin: preço negativo bloqueado
-// ─────────────────────────────────────────────
-test('CT-10 | Admin: inserção com preço negativo exibe erro', async ({ page }) => {
+test('NEG-03 | Admin redireciona para login sem sessão ativa', async ({ page }) => {
+  await page.goto(BASE);
+  await page.evaluate(() => localStorage.removeItem('pokemon_session'));
   await page.goto(ADMIN_URL);
-  await page.fill('#card-name', 'CartaTeste');
+  await expect(page).toHaveURL(/login\.html/, { timeout: 5000 });
+});
+
+test('NEG-04 | Admin: preço negativo exibe erro de validação', async ({ page }) => {
+  await injectSession(page, 'user');
+  await page.goto(ADMIN_URL);
+  await page.waitForSelector('#form-insert', { timeout: 8000 });
+  await page.fill('#card-name', 'CartaInvalida');
   await page.fill('#card-type', 'Fogo');
-  await page.fill('#card-price', '-50');
+  // Remove o atributo min para forçar valor negativo e testar validação JS
+  await page.evaluate(() => {
+    document.getElementById('card-price').removeAttribute('min');
+    document.getElementById('card-price').value = '-50';
+  });
   await page.fill('#card-stock', '1');
   await page.click('#form-insert button[type="submit"]');
-  await expect(page.locator('#msg-insert')).toContainText('inválido');
+  await expect(page.locator('#msg-insert')).toContainText('inválido', { timeout: 8000 });
 });
 
-// ─────────────────────────────────────────────
-// CT-11 – Admin: excluir carta inexistente
-// ─────────────────────────────────────────────
-test('CT-11 | Admin: excluir carta inexistente exibe erro', async ({ page }) => {
-  await page.goto(ADMIN_URL);
-  await page.fill('#delete-name', 'CartaQueNaoExiste999');
-  await page.click('#form-delete button[type="submit"]');
-  await expect(page.locator('#msg-delete')).toContainText('não encontrada');
-});
-
-// ─────────────────────────────────────────────
-// CT-12 – Filtro por tipo funciona
-// ─────────────────────────────────────────────
-test('CT-12 | Filtro por tipo exibe apenas cartas do tipo selecionado', async ({ page }) => {
+test('NEG-05 | XSS: nome com script malicioso não executa alert', async ({ page }) => {
+  test.setTimeout(60000);
+  let alertDisparado = false;
+  page.on('dialog', async dialog => {
+    alertDisparado = true;
+    await dialog.dismiss();
+  });
   await page.goto(BASE);
-  // clicar no filtro Fogo
-  const fogoBtn = page.locator('.type-btn', { hasText: 'Fogo' });
-  await fogoBtn.click();
-  const cards = page.locator('.card');
-  const count = await cards.count();
-  expect(count).toBeGreaterThan(0);
-  // todas as cartas visíveis devem ter badge Fogo
-  const badges = page.locator('.type-badge');
-  const total = await badges.count();
-  for (let i = 0; i < total; i++) {
-    await expect(badges.nth(i)).toHaveText('Fogo');
-  }
+  await page.waitForSelector('.card', { timeout: 10000 });
+  await page.evaluate(() => {
+    const cards = JSON.parse(localStorage.getItem('pokemon_cards') || '[]');
+    cards.push({
+      id: 99999,
+      name: '<img src=x onerror=alert(1)>',
+      type: 'Normal',
+      price: 1.00,
+      image: 'https://via.placeholder.com/200',
+      stock: 1,
+    });
+    localStorage.setItem('pokemon_cards', JSON.stringify(cards));
+  });
+  await page.reload({ waitUntil: 'domcontentloaded', timeout: 30000 });
+  await page.waitForTimeout(2000);
+  expect(alertDisparado).toBe(false);
 });

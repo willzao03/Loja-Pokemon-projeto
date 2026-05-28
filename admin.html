@@ -3,7 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin — Loja Pokémon</title>
+  <meta http-equiv="X-Frame-Options" content="DENY">
+  <meta http-equiv="Content-Security-Policy" content="frame-ancestors 'none'">
+  <title>Vender Cartas — Loja Pokémon</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -20,53 +22,89 @@
     </nav>
   </header>
 
-  <!-- INSERIR -->
+  <!-- PAINEL DO VENDEDOR -->
   <div class="admin-panel">
-    <h2>➕ Inserir Nova Carta</h2>
+    <div class="seller-welcome" id="seller-welcome"></div>
+  </div>
+
+  <!-- ANUNCIAR NOVA CARTA -->
+  <div class="admin-panel">
+    <h2>➕ Anunciar Nova Carta</h2>
+    <p style="color:#aaa;font-size:0.88rem;margin-bottom:16px">Preencha os dados da carta que deseja vender na loja.</p>
     <form id="form-insert">
-      <input id="card-name"  type="text"   placeholder="Nome da carta *" required>
-      <input id="card-type"  type="text"   placeholder="Tipo (ex: Fogo, Água) *" required>
-      <input id="card-price" type="number" placeholder="Preço (R$) *" step="0.01" required>
-      <input id="card-stock" type="number" placeholder="Estoque *" min="0" required>
+      <input id="card-name"  type="text"   placeholder="Nome da carta *" required maxlength="100">
+      <input id="card-type"  type="text"   placeholder="Tipo (ex: Fogo, Água) *" required maxlength="50">
+      <input id="card-price" type="number" placeholder="Preço (R$) *" step="0.01" min="0.01" required>
+      <input id="card-stock" type="number" placeholder="Quantidade disponível *" min="1" required>
       <input id="card-image" type="url"    placeholder="URL da imagem (opcional)">
-      <button type="submit">Adicionar Carta</button>
+      <button type="submit">📢 Anunciar Carta</button>
     </form>
     <div id="msg-insert" class="msg"></div>
   </div>
 
-  <!-- EDITAR -->
+  <!-- MINHAS CARTAS -->
   <div class="admin-panel" style="margin-top:20px">
-    <h2>✏️ Editar Carta</h2>
-    <form id="form-edit-search">
-      <input id="edit-search" type="text" placeholder="Nome exato da carta" required>
-      <button type="submit">Buscar</button>
-    </form>
-    <form id="form-edit" class="hidden" style="margin-top:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+      <h2 style="margin-bottom:0">📋 Minhas Cartas</h2>
+      <input id="my-cards-search" type="text" placeholder="🔍 Filtrar por nome..."
+             style="width:220px;padding:7px 12px;border-radius:8px;border:1px solid #0f3460;background:#0f3460;color:#fff;font-size:0.88rem"
+             oninput="filterMyCards(this.value)">
+    </div>
+    <div id="my-cards-list"></div>
+
+    <!-- Formulário de edição (aparece ao clicar em Editar) -->
+    <form id="form-edit" class="hidden" style="margin-top:20px;border-top:1px solid #0f3460;padding-top:18px">
+      <p style="color:#ffcb05;font-weight:bold;margin-bottom:12px">✏️ Editando carta:</p>
       <input id="edit-id" type="hidden">
-      <input id="edit-name"  type="text"   placeholder="Nome *" required>
-      <input id="edit-type"  type="text"   placeholder="Tipo *" required>
-      <input id="edit-price" type="number" placeholder="Preço (R$) *" step="0.01" required>
-      <input id="edit-stock" type="number" placeholder="Estoque *" min="0" required>
+      <input id="edit-name"  type="text"   placeholder="Nome *" required maxlength="100">
+      <input id="edit-type"  type="text"   placeholder="Tipo *" required maxlength="50">
+      <input id="edit-price" type="number" placeholder="Preço (R$) *" step="0.01" min="0.01" required>
+      <input id="edit-stock" type="number" placeholder="Quantidade *" min="0" required>
       <input id="edit-image" type="url"    placeholder="URL da imagem">
-      <button type="submit">Salvar Alterações</button>
+      <div style="display:flex;gap:10px">
+        <button type="submit" style="flex:1">💾 Salvar Alterações</button>
+        <button type="button" onclick="cancelEdit()" style="flex:0 0 auto;background:#444">✕ Cancelar</button>
+      </div>
     </form>
     <div id="msg-edit" class="msg"></div>
   </div>
 
-  <!-- EXCLUIR -->
-  <div class="admin-panel" style="margin-top:20px">
-    <h2>🗑️ Excluir Carta</h2>
-    <form id="form-delete">
-      <input id="delete-name" type="text" placeholder="Nome exato da carta" required>
-      <button type="submit" style="background:#6b1a1a">Excluir Carta</button>
-    </form>
-    <div id="msg-delete" class="msg"></div>
-  </div>
-
   <footer>
-    <p>Loja Pokémon &copy; 2025 — UNIFECAF | Projeto de E-commerce</p>
+    <p>Loja Pokémon &copy; 2026 — UNIFECAF | Projeto de E-commerce</p>
   </footer>
 
   <script src="app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (!requireAdmin()) return;
+      const session = getSession();
+      const welcome = document.getElementById('seller-welcome');
+      if (welcome && session) {
+        welcome.innerHTML = `
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+            <div>
+              <h2 style="color:#ffcb05;margin-bottom:4px">👋 Olá, ${sanitize(session.username)}!</h2>
+              <p style="color:#aaa;font-size:0.9rem">Anuncie, edite e remova suas cartas da loja.</p>
+            </div>
+            <a href="index.html" style="color:#ffcb05;font-size:0.9rem;text-decoration:underline">← Ver loja</a>
+          </div>
+        `;
+      }
+    });
+
+    function filterMyCards(query) {
+      const rows = document.querySelectorAll('.my-card-row');
+      const q = query.toLowerCase();
+      rows.forEach(row => {
+        const name = row.querySelector('strong')?.textContent.toLowerCase() || '';
+        row.style.display = name.includes(q) ? '' : 'none';
+      });
+    }
+
+    function cancelEdit() {
+      document.getElementById('form-edit').classList.add('hidden');
+      document.querySelectorAll('.my-card-row').forEach(r => r.classList.remove('selected'));
+    }
+  </script>
 </body>
 </html>

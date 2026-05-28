@@ -165,9 +165,209 @@ nav a:hover { opacity:.8; }
   padding:12px; border-radius:8px; font-weight:bold; font-size:1rem; cursor:pointer; transition:background .2s;
 }
 .login-container button:hover { background:#c02a0a; }
+/* Exceção: botão toggle de senha não herda estilo de botão do container */
+.login-container .toggle-pass {
+  width: auto;
+  background: none;
+  padding: 0;
+  border: none;
+  font-size: 1.1rem;
+  color: #aaa;
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  line-height: 1;
+  border-radius: 0;
+}
+.login-container .toggle-pass:hover { background: none; color: #fff; }
 .login-container .toggle { text-align:center; margin-top:14px; color:#aaa; font-size:0.9rem; }
 .login-container .toggle a { color:#ffcb05; cursor:pointer; text-decoration:underline; }
+
+.seller-welcome {
+  padding: 4px 0 8px;
+}
+.seller-welcome h2 { margin-bottom: 4px; }
+
+/* MINHAS CARTAS — painel do vendedor */
+.my-card-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #0f3460;
+  margin-bottom: 8px;
+  transition: background 0.2s, outline 0.2s;
+}
+.my-card-row:hover { background: #1a4a8a; }
+.my-card-row.selected { outline: 2px solid #ffcb05; background: #1a4a8a; }
+.my-card-row img {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+  border-radius: 6px;
+  background: #16213e;
+  padding: 4px;
+  flex-shrink: 0;
+}
+.my-card-info {
+  flex: 1;
+  min-width: 0;
+}
+.my-card-info strong {
+  display: block;
+  color: #fff;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.my-card-info span {
+  color: #aaa;
+  font-size: 0.82rem;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 3px;
+}
+.my-card-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.btn-edit-card {
+  background: #1565c0;
+  color: #fff;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background 0.2s;
+}
+.btn-edit-card:hover { background: #1976d2; }
+.btn-del-card {
+  background: #6b1a1a;
+  color: #fff;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.btn-del-card:hover { background: #b71c1c; }
+
+.admin-hint {
+  margin-top: 14px;
+  padding: 10px 14px;
+  background: #0f3460;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  color: #aaa;
+  text-align: center;
+  border: 1px solid #1a4a8a;
+}
+.admin-hint strong { color: #ffcb05; }
 .hidden { display:none !important; }
 
 /* FOOTER */
 footer { background:#0f3460; text-align:center; padding:18px; color:#aaa; font-size:0.85rem; margin-top:40px; }
+
+/* FORÇA DE SENHA */
+.password-wrapper {
+  position: relative;
+  margin-bottom: 0;
+}
+.password-wrapper input {
+  width: 100%;
+  margin-bottom: 0;
+  background: #0f3460 !important;
+  border: 1px solid #0f3460;
+  color: #fff;
+  padding: 10px 44px 10px 14px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  display: block;
+}
+.password-wrapper input:focus {
+  outline: none;
+  border-color: #ffcb05;
+}
+.login-container .toggle-pass {
+  width: auto;
+  background: none;
+  padding: 0;
+  border: none;
+  font-size: 1.1rem;
+  color: #aaa;
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  line-height: 1;
+  border-radius: 0;
+}
+.login-container .toggle-pass:hover { background: none; color: #fff; }
+
+.strength-bar-wrap {
+  height: 5px;
+  background: #0a2240;
+  border-radius: 0 0 4px 4px;
+  margin-bottom: 0;
+  overflow: hidden;
+}
+.strength-bar {
+  height: 100%;
+  width: 0%;
+  border-radius: 0 0 4px 4px;
+  transition: width 0.35s ease, background 0.35s ease;
+}
+
+.strength-label {
+  font-size: 0.78rem;
+  font-weight: bold;
+  margin: 4px 0 10px;
+  min-height: 16px;
+  text-align: right;
+  color: #aaa;
+}
+
+.password-checklist {
+  list-style: none;
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  background: #0f3460;
+  border-radius: 8px;
+  font-size: 0.82rem;
+}
+.password-checklist li {
+  padding: 4px 0;
+  color: #ff7070;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: color 0.2s;
+}
+.password-checklist li.ok {
+  color: #7dffb3;
+}
+.password-checklist .req-icon {
+  font-weight: bold;
+  font-size: 0.9rem;
+  width: 14px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+#btn-cadastrar:disabled {
+  background: #444;
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+#btn-cadastrar:disabled:hover { background: #444; }

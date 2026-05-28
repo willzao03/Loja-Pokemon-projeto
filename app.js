@@ -8,19 +8,231 @@ const DB_SESSION = 'pokemon_session';
 const DB_CART    = 'pokemon_cart';
 const SEED_VERSION = 'v3';
 
-// --- STORAGE ---
-const getCards   = () => JSON.parse(localStorage.getItem(DB_CARDS)   || '[]');
+// --- STORAGE (com proteção contra JSON malformado) ---
+function safeGet(key, fallback) {
+  try {
+    const val = localStorage.getItem(key);
+    return val ? JSON.parse(val) : fallback;
+  } catch {
+    console.warn(`[Storage] Dado corrompido em "${key}". Resetando.`);
+    localStorage.removeItem(key);
+    return fallback;
+  }
+}
+const getCards   = () => safeGet(DB_CARDS,   []);
 const saveCards  = v  => localStorage.setItem(DB_CARDS,   JSON.stringify(v));
-const getUsers   = () => JSON.parse(localStorage.getItem(DB_USERS)   || '[]');
+const getUsers   = () => safeGet(DB_USERS,   []);
 const saveUsers  = v  => localStorage.setItem(DB_USERS,   JSON.stringify(v));
-const getSession = () => JSON.parse(localStorage.getItem(DB_SESSION) || 'null');
+const getSession = () => safeGet(DB_SESSION, null);
 const setSession = v  => localStorage.setItem(DB_SESSION, JSON.stringify(v));
-const getCart    = () => JSON.parse(localStorage.getItem(DB_CART)    || '[]');
+const getCart    = () => safeGet(DB_CART,    []);
 const saveCart   = v  => localStorage.setItem(DB_CART,    JSON.stringify(v));
+
+// --- SEGURANÇA: Hash de senha com SHA-256 (crypto nativo) ---
+async function hashPassword(password) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password);
+  const hash = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hash))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+// --- SEGURANÇA: Sanitizar texto para evitar XSS ---
+function sanitize(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// --- SEGURANÇA: Toggle visibilidade da senha ---
+function togglePasswordVisibility(inputId, btn) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  if (input.type === 'password') {
+    input.type = 'text';
+    btn.textContent = '🙈';
+    btn.setAttribute('aria-label', 'Ocultar senha');
+  } else {
+    input.type = 'password';
+    btn.textContent = '👁';
+    btn.setAttribute('aria-label', 'Mostrar senha');
+  }
+}
+
+// --- SEGURANÇA: Avaliação de força de senha ---
+const PASSWORD_RULES = [
+  { id: 'req-length',  test: p => p.length >= 8,                         label: 'Mínimo 8 caracteres'           },
+  { id: 'req-upper',   test: p => /[A-Z]/.test(p),                       label: 'Uma letra maiúscula'            },
+  { id: 'req-lower',   test: p => /[a-z]/.test(p),                       label: 'Uma letra minúscula'            },
+  { id: 'req-number',  test: p => /[0-9]/.test(p),                       label: 'Um número'                     },
+  { id: 'req-special', test: p => /[^A-Za-z0-9]/.test(p),               label: 'Um caractere especial (!@#$...)'},
+];
+
+const STRENGTH_LEVELS = [
+  { label: '',          color: '',        width: '0%'   },
+  { label: 'Muito fraca', color: '#e3350d', width: '20%'  },
+  { label: 'Fraca',     color: '#e3350d', width: '40%'  },
+  { label: 'Média',     color: '#f9a825', width: '60%'  },
+  { label: 'Forte',     color: '#4caf50', width: '80%'  },
+  { label: 'Muito forte', color: '#00e676', width: '100%' },
+];
+
+function evaluatePasswordStrength(password) {
+  const passed = PASSWORD_RULES.filter(r => r.test(password)).length;
+  return passed; // 0–5
+}
+
+function initPasswordStrength() {
+  const input     = document.getElementById('cad-pass');
+  const bar       = document.getElementById('strength-bar');
+  const label     = document.getElementById('strength-label');
+  const btnSubmit = document.getElementById('btn-cadastrar');
+  if (!input || !bar) return;
+
+  input.addEventListener('input', () => {
+    const password = input.value;
+    const score    = evaluatePasswordStrength(password);
+    const level    = password.length === 0 ? STRENGTH_LEVELS[0] : STRENGTH_LEVELS[score];
+
+    // Atualiza barra
+    bar.style.width      = level.width;
+    bar.style.background = level.color;
+
+    // Atualiza label
+    label.textContent  = level.label;
+    label.style.color  = level.color;
+
+    // Atualiza checklist
+    PASSWORD_RULES.forEach(rule => {
+      const li   = document.getElementById(rule.id);
+      const icon = li?.querySelector('.req-icon');
+      if (!li || !icon) return;
+      const ok = rule.test(password);
+      li.classList.toggle('ok', ok);
+      icon.textContent = ok ? '✓' : '✗';
+    });
+
+    // Habilita botão só se todos os requisitos forem atendidos
+    const allOk = score === PASSWORD_RULES.length;
+    btnSubmit.disabled = !allOk;
+  });
+}
+
+// --- SEGURANÇA: Validar URL de imagem ---
+function isValidImageUrl(url) {
+  if (!url) return false;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:';
+  } catch {
+    return false;
+  }
+}
+
+// --- SEGURANÇA: Guard de autenticação para admin ---
+// Qualquer usuário logado pode gerenciar cartas (vender/editar as suas)
+function requireAdmin() {
+  if (!isSessionValid()) {
+    window.location.href = 'login.html';
+    return false;
+  }
+  return true;
+}
 
 function logout() {
   localStorage.removeItem(DB_SESSION);
+  localStorage.removeItem('login_attempts');
+  localStorage.removeItem('login_blocked_until');
+  clearInactivityTimer();
   window.location.href = 'login.html';
+}
+
+// --- SEGURANÇA: Rate limiting de login (máx 5 tentativas, bloqueio 30s) ---
+const MAX_LOGIN_ATTEMPTS = 5;
+const BLOCK_DURATION_MS  = 30 * 1000; // 30 segundos
+
+function getLoginAttempts() {
+  return safeGet('login_attempts', { count: 0, lastAttempt: 0 });
+}
+
+function recordLoginFailure() {
+  const data = getLoginAttempts();
+  // Reseta contador se última tentativa foi há mais de BLOCK_DURATION_MS
+  if (Date.now() - data.lastAttempt > BLOCK_DURATION_MS) {
+    data.count = 0;
+  }
+  data.count++;
+  data.lastAttempt = Date.now();
+  localStorage.setItem('login_attempts', JSON.stringify(data));
+}
+
+function resetLoginAttempts() {
+  localStorage.removeItem('login_attempts');
+}
+
+function isLoginBlocked() {
+  const data = getLoginAttempts();
+  if (data.count >= MAX_LOGIN_ATTEMPTS) {
+    const elapsed = Date.now() - data.lastAttempt;
+    if (elapsed < BLOCK_DURATION_MS) {
+      const remaining = Math.ceil((BLOCK_DURATION_MS - elapsed) / 1000);
+      return { blocked: true, remaining };
+    }
+    resetLoginAttempts();
+  }
+  return { blocked: false };
+}
+
+// --- SEGURANÇA: Expiração de sessão (2 horas) ---
+const SESSION_DURATION_MS = 2 * 60 * 60 * 1000; // 2 horas
+
+function setSessionWithExpiry(user) {
+  const sessionData = { ...user, expiresAt: Date.now() + SESSION_DURATION_MS };
+  setSession(sessionData);
+}
+
+function isSessionValid() {
+  const session = getSession();
+  if (!session) return false;
+  if (session.expiresAt && Date.now() > session.expiresAt) {
+    localStorage.removeItem(DB_SESSION);
+    return false;
+  }
+  return true;
+}
+
+// --- SEGURANÇA: Logout automático por inatividade (15 minutos) ---
+const INACTIVITY_LIMIT_MS = 15 * 60 * 1000; // 15 minutos
+let inactivityTimer = null;
+
+function resetInactivityTimer() {
+  if (!isSessionValid()) return;
+  clearTimeout(inactivityTimer);
+  inactivityTimer = setTimeout(() => {
+    showToast('Sessão encerrada por inatividade.');
+    setTimeout(logout, 1500);
+  }, INACTIVITY_LIMIT_MS);
+}
+
+function clearInactivityTimer() {
+  clearTimeout(inactivityTimer);
+}
+
+function initInactivityWatcher() {
+  if (!isSessionValid()) return;
+  ['click', 'keydown', 'mousemove', 'touchstart', 'scroll'].forEach(evt =>
+    document.addEventListener(evt, resetInactivityTimer, { passive: true })
+  );
+  resetInactivityTimer();
+}
+
+// --- SEGURANÇA: Proteção contra clickjacking ---
+function preventClickjacking() {
+  if (window.self !== window.top) {
+    // A página está dentro de um iframe — sai imediatamente
+    window.top.location = window.self.location;
+  }
 }
 
 // --- TIPO → COR ---
@@ -40,7 +252,16 @@ const typeColors = {
 };
 const typeColor = t => typeColors[t] || '#555';
 
-// --- SEED ---
+// --- SEED ADMIN (usuário padrão de administrador) ---
+async function seedAdmin() {
+  const users = getUsers();
+  if (users.find(u => u.username === 'admin')) return; // já existe
+  const hashedPassword = await hashPassword('Admin@123');
+  users.push({ username: 'admin', password: hashedPassword, role: 'admin' });
+  saveUsers(users);
+}
+
+// --- SEED CARDS ---
 function seedCards() {
   if (localStorage.getItem('seed_version') === SEED_VERSION) return;
   localStorage.removeItem(DB_CARDS);
@@ -76,7 +297,7 @@ function renderTypeFilters() {
   if (!wrap) return;
   const types = [...new Set(getCards().map(c => c.type))].sort();
   wrap.innerHTML = `<button class="type-btn active" data-type="">Todos</button>` +
-    types.map(t => `<button class="type-btn" data-type="${t}" style="--tc:${typeColor(t)}">${t}</button>`).join('');
+    types.map(t => `<button class="type-btn" data-type="${sanitize(t)}" style="--tc:${typeColor(t)}">${sanitize(t)}</button>`).join('');
   wrap.addEventListener('click', e => {
     const btn = e.target.closest('.type-btn');
     if (!btn) return;
@@ -108,10 +329,10 @@ function renderCards(filter = '', typeFilter = '') {
   }
   grid.innerHTML = cards.map(c => `
     <div class="card" onclick="openModal(${c.id})">
-      <img src="${c.image}" alt="${c.name}" onerror="this.src='https://via.placeholder.com/200x200?text=Carta'">
+      <img src="${sanitize(c.image)}" alt="${sanitize(c.name)}" onerror="this.src='https://via.placeholder.com/200x200?text=Carta'">
       <div class="card-info">
-        <span class="type-badge" style="background:${typeColor(c.type)}">${c.type}</span>
-        <h3>${c.name}</h3>
+        <span class="type-badge" style="background:${typeColor(c.type)}">${sanitize(c.type)}</span>
+        <h3>${sanitize(c.name)}</h3>
         <p class="price">R$ ${c.price.toFixed(2)}</p>
         <button class="btn-buy" onclick="event.stopPropagation();addToCart(${c.id})">🛒 Adicionar</button>
       </div>
@@ -138,12 +359,12 @@ function initSearch() {
 function openModal(id) {
   const card = getCards().find(c => c.id === id);
   if (!card) return;
-  document.getElementById('modal-img').src       = card.image;
-  document.getElementById('modal-name').textContent  = card.name;
-  document.getElementById('modal-type').textContent  = card.type;
+  document.getElementById('modal-img').src            = card.image;
+  document.getElementById('modal-name').textContent   = card.name;
+  document.getElementById('modal-type').textContent   = card.type;
   document.getElementById('modal-type').style.background = typeColor(card.type);
-  document.getElementById('modal-price').textContent = `R$ ${card.price.toFixed(2)}`;
-  document.getElementById('modal-stock').textContent = `Estoque: ${card.stock}`;
+  document.getElementById('modal-price').textContent  = `R$ ${card.price.toFixed(2)}`;
+  document.getElementById('modal-stock').textContent  = `Estoque: ${card.stock}`;
   document.getElementById('modal-buy').onclick = () => { addToCart(id); closeModal(); };
   document.getElementById('card-modal').classList.remove('hidden');
 }
@@ -173,7 +394,7 @@ function updateCartBadge() {
 }
 
 function openCart() {
-  const cart = getCart();
+  const cart  = getCart();
   const panel = document.getElementById('cart-panel');
   const list  = document.getElementById('cart-list');
   if (!panel || !list) return;
@@ -183,9 +404,9 @@ function openCart() {
     const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
     list.innerHTML = cart.map(i => `
       <div class="cart-item">
-        <img src="${i.image}" alt="${i.name}" onerror="this.src='https://via.placeholder.com/60x60?text=?'">
+        <img src="${sanitize(i.image)}" alt="${sanitize(i.name)}" onerror="this.src='https://via.placeholder.com/60x60?text=?'">
         <div class="cart-item-info">
-          <strong>${i.name}</strong>
+          <strong>${sanitize(i.name)}</strong>
           <span>R$ ${i.price.toFixed(2)} x ${i.qty}</span>
         </div>
         <button onclick="removeFromCart(${i.id})" class="btn-remove">✕</button>
@@ -208,6 +429,28 @@ function removeFromCart(id) {
 }
 
 function finalizarCompra() {
+  // Revalida preços buscando do DB_CARDS para evitar manipulação no localStorage
+  const cart  = getCart();
+  const cards = getCards();
+  let total = 0;
+  let manipulado = false;
+
+  cart.forEach(item => {
+    const cardOriginal = cards.find(c => c.id === item.id);
+    if (cardOriginal && item.price !== cardOriginal.price) {
+      manipulado = true;
+      item.price = cardOriginal.price; // corrige o preço
+    }
+    if (cardOriginal) total += cardOriginal.price * item.qty;
+  });
+
+  if (manipulado) {
+    showToast('Preços atualizados. Verifique o carrinho antes de finalizar.');
+    saveCart(cart);
+    openCart();
+    return;
+  }
+
   saveCart([]);
   updateCartBadge();
   closeCart();
@@ -229,84 +472,134 @@ function initAdminInsert() {
   if (!form) return;
   form.addEventListener('submit', e => {
     e.preventDefault();
-    const name  = document.getElementById('card-name').value.trim();
-    const type  = document.getElementById('card-type').value.trim();
+    const name  = document.getElementById('card-name').value.trim().slice(0, 100);
+    const type  = document.getElementById('card-type').value.trim().slice(0, 50);
     const price = parseFloat(document.getElementById('card-price').value);
     const image = document.getElementById('card-image').value.trim();
     const stock = parseInt(document.getElementById('card-stock').value);
     const msg   = document.getElementById('msg-insert');
-    if (price < 0) { showMsg(msg, 'Preço inválido. Insira um valor positivo.', 'error'); return; }
-    if (!name || !type) { showMsg(msg, 'Preencha todos os campos obrigatórios.', 'error'); return; }
+
+    if (!name || !type)  { showMsg(msg, 'Preencha todos os campos obrigatórios.', 'error'); return; }
+    if (price < 0)       { showMsg(msg, 'Preço inválido. Insira um valor positivo.', 'error'); return; }
+    if (stock < 0)       { showMsg(msg, 'Estoque não pode ser negativo.', 'error'); return; }
+    if (image && !isValidImageUrl(image)) { showMsg(msg, 'URL da imagem inválida.', 'error'); return; }
+
     const cards = getCards();
-    cards.push({ id: Date.now(), name, type, price, image: image || 'https://via.placeholder.com/200x200?text=Carta', stock });
+    cards.push({
+      id: Date.now(),
+      name,
+      type,
+      price,
+      image: image || 'https://via.placeholder.com/200x200?text=Carta',
+      stock,
+      seller: getSession()?.username || 'desconhecido',
+    });
     saveCards(cards);
-    showMsg(msg, `Carta "${name}" inserida com sucesso!`, 'success');
+    showMsg(msg, `Carta "${name}" anunciada com sucesso!`, 'success');
     form.reset();
+    renderMyCards(); // atualiza o painel do vendedor
   });
 }
 
-// --- ADMIN: EDITAR ---
-function initAdminEdit() {
-  const formSearch = document.getElementById('form-edit-search');
-  const formEdit   = document.getElementById('form-edit');
-  if (!formSearch) return;
+// --- PAINEL: Minhas Cartas (lista do vendedor logado) ---
+function renderMyCards() {
+  const container = document.getElementById('my-cards-list');
+  if (!container) return;
+  const session = getSession();
+  if (!session) return;
 
-  formSearch.addEventListener('submit', e => {
-    e.preventDefault();
-    const name  = document.getElementById('edit-search').value.trim().toLowerCase();
-    const msg   = document.getElementById('msg-edit');
-    const card  = getCards().find(c => c.name.toLowerCase() === name);
-    if (!card) { showMsg(msg, 'Carta não encontrada.', 'error'); formEdit.classList.add('hidden'); return; }
-    document.getElementById('edit-id').value    = card.id;
-    document.getElementById('edit-name').value  = card.name;
-    document.getElementById('edit-type').value  = card.type;
-    document.getElementById('edit-price').value = card.price;
-    document.getElementById('edit-stock').value = card.stock;
-    document.getElementById('edit-image').value = card.image;
-    formEdit.classList.remove('hidden');
-  });
+  const minhas = getCards().filter(c => c.seller === session.username);
+
+  if (minhas.length === 0) {
+    container.innerHTML = '<p style="color:#aaa;text-align:center;padding:16px">Você ainda não anunciou nenhuma carta.</p>';
+    return;
+  }
+
+  container.innerHTML = minhas.map(c => `
+    <div class="my-card-row" id="mycard-${c.id}">
+      <img src="${sanitize(c.image)}" alt="${sanitize(c.name)}"
+           onerror="this.src='https://via.placeholder.com/56x56?text=?'">
+      <div class="my-card-info">
+        <strong>${sanitize(c.name)}</strong>
+        <span>
+          <span class="type-badge" style="background:${typeColor(c.type)};font-size:0.7rem;padding:2px 8px">${sanitize(c.type)}</span>
+          &nbsp;R$ ${c.price.toFixed(2)} &nbsp;·&nbsp; Qtd: ${c.stock}
+        </span>
+      </div>
+      <div class="my-card-actions">
+        <button class="btn-edit-card" onclick="openEditCard(${c.id})">✏️ Editar</button>
+        <button class="btn-del-card"  onclick="deleteMyCard(${c.id})">🗑️</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function openEditCard(id) {
+  const card = getCards().find(c => c.id === id);
+  if (!card) return;
+  // Preenche o formulário de edição e rola até ele
+  document.getElementById('edit-id').value    = card.id;
+  document.getElementById('edit-name').value  = card.name;
+  document.getElementById('edit-type').value  = card.type;
+  document.getElementById('edit-price').value = card.price;
+  document.getElementById('edit-stock').value = card.stock;
+  document.getElementById('edit-image').value = card.image;
+  const formEdit = document.getElementById('form-edit');
+  formEdit.classList.remove('hidden');
+  formEdit.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  // Destaca a linha selecionada
+  document.querySelectorAll('.my-card-row').forEach(r => r.classList.remove('selected'));
+  document.getElementById(`mycard-${id}`)?.classList.add('selected');
+}
+
+function deleteMyCard(id) {
+  const cards = getCards();
+  const card  = cards.find(c => c.id === id);
+  if (!card) return;
+  if (!confirm(`Remover "${card.name}" da loja? Esta ação não pode ser desfeita.`)) return;
+  saveCards(cards.filter(c => c.id !== id));
+  showToast(`"${card.name}" removida com sucesso.`);
+  renderMyCards();
+  document.getElementById('form-edit')?.classList.add('hidden');
+}
+
+// --- ADMIN: EDITAR (via painel) ---
+function initAdminEdit() {
+  const formEdit = document.getElementById('form-edit');
+  if (!formEdit) return;
 
   formEdit.addEventListener('submit', e => {
     e.preventDefault();
     const id    = parseInt(document.getElementById('edit-id').value);
     const price = parseFloat(document.getElementById('edit-price').value);
+    const image = document.getElementById('edit-image').value.trim();
     const msg   = document.getElementById('msg-edit');
+
     if (price < 0) { showMsg(msg, 'Preço inválido.', 'error'); return; }
+    if (image && !isValidImageUrl(image)) { showMsg(msg, 'URL da imagem inválida.', 'error'); return; }
+
     const cards = getCards();
     const idx   = cards.findIndex(c => c.id === id);
     if (idx === -1) { showMsg(msg, 'Carta não encontrada.', 'error'); return; }
+
     cards[idx] = {
       ...cards[idx],
-      name:  document.getElementById('edit-name').value.trim(),
-      type:  document.getElementById('edit-type').value.trim(),
+      name:  document.getElementById('edit-name').value.trim().slice(0, 100),
+      type:  document.getElementById('edit-type').value.trim().slice(0, 50),
       price,
       stock: parseInt(document.getElementById('edit-stock').value),
-      image: document.getElementById('edit-image').value.trim() || cards[idx].image,
+      image: image || cards[idx].image,
     };
     saveCards(cards);
     showMsg(msg, 'Carta atualizada com sucesso!', 'success');
     formEdit.classList.add('hidden');
-    formSearch.reset();
+    document.querySelectorAll('.my-card-row').forEach(r => r.classList.remove('selected'));
+    renderMyCards();
   });
 }
 
-// --- ADMIN: EXCLUIR ---
-function initAdminDelete() {
-  const form = document.getElementById('form-delete');
-  if (!form) return;
-  form.addEventListener('submit', e => {
-    e.preventDefault();
-    const name  = document.getElementById('delete-name').value.trim().toLowerCase();
-    const msg   = document.getElementById('msg-delete');
-    const cards = getCards();
-    const idx   = cards.findIndex(c => c.name.toLowerCase() === name);
-    if (idx === -1) { showMsg(msg, 'Carta não encontrada.', 'error'); return; }
-    cards.splice(idx, 1);
-    saveCards(cards);
-    showMsg(msg, 'Carta removida com sucesso!', 'success');
-    form.reset();
-  });
-}
+// --- ADMIN: EXCLUIR (mantido para compatibilidade, mas não usado no painel) ---
+function initAdminDelete() {}
 
 // --- LOGIN / CADASTRO ---
 function initLogin() {
@@ -314,25 +607,76 @@ function initLogin() {
   const formCadastro = document.getElementById('form-cadastro');
   if (!formLogin) return;
 
-  formLogin.addEventListener('submit', e => {
+  // Login com hash de senha + rate limiting
+  formLogin.addEventListener('submit', async e => {
     e.preventDefault();
     const username = document.getElementById('login-user').value.trim();
     const password = document.getElementById('login-pass').value;
     const msg      = document.getElementById('msg-login');
-    const user     = getUsers().find(u => u.username === username);
-    if (!user || user.password !== password) { showMsg(msg, 'Usuário ou senha incorretos.', 'error'); return; }
-    setSession(user);
+
+    if (!username || !password) { showMsg(msg, 'Preencha todos os campos.', 'error'); return; }
+
+    // Verifica bloqueio por tentativas
+    const block = isLoginBlocked();
+    if (block.blocked) {
+      showMsg(msg, `Muitas tentativas. Aguarde ${block.remaining}s para tentar novamente.`, 'error');
+      return;
+    }
+
+    const hashedPassword = await hashPassword(password);
+    const users = getUsers();
+    const user  = users.find(u => u.username === username);
+
+    // Suporte a senhas antigas (texto puro) e novas (hash) durante migração
+    const senhaCorreta = user && (user.password === hashedPassword || user.password === password);
+    if (!senhaCorreta) {
+      recordLoginFailure();
+      const block2 = isLoginBlocked();
+      if (block2.blocked) {
+        showMsg(msg, `Muitas tentativas. Conta bloqueada por ${block2.remaining}s.`, 'error');
+      } else {
+        const tentativas = getLoginAttempts();
+        const restantes  = MAX_LOGIN_ATTEMPTS - tentativas.count;
+        showMsg(msg, `Usuário ou senha incorretos. (${restantes} tentativa(s) restante(s))`, 'error');
+      }
+      return;
+    }
+
+    // Se senha ainda era texto puro, migra para hash
+    if (user.password === password) {
+      user.password = hashedPassword;
+      saveUsers(users);
+    }
+
+    resetLoginAttempts();
+
+    // Salva sessão sem a senha, com expiração
+    const { password: _, ...userData } = user;
+    setSessionWithExpiry(userData);
     window.location.href = 'index.html';
   });
 
-  formCadastro.addEventListener('submit', e => {
+  // Cadastro com hash de senha
+  formCadastro.addEventListener('submit', async e => {
     e.preventDefault();
-    const username = document.getElementById('cad-user').value.trim();
+    const username = document.getElementById('cad-user').value.trim().slice(0, 50);
     const password = document.getElementById('cad-pass').value;
     const msg      = document.getElementById('msg-cadastro');
-    if (getUsers().find(u => u.username === username)) { showMsg(msg, 'Usuário já existe. Escolha outro nome.', 'error'); return; }
+
+    if (!username || !password)  { showMsg(msg, 'Preencha todos os campos.', 'error'); return; }
+    if (password.length < 8)     { showMsg(msg, 'A senha deve ter pelo menos 8 caracteres.', 'error'); return; }
+    if (evaluatePasswordStrength(password) < PASSWORD_RULES.length) {
+      showMsg(msg, 'A senha não atende todos os requisitos de segurança.', 'error');
+      return;
+    }
+    if (getUsers().find(u => u.username === username)) {
+      showMsg(msg, 'Usuário já existe. Escolha outro nome.', 'error');
+      return;
+    }
+
+    const hashedPassword = await hashPassword(password);
     const users = getUsers();
-    users.push({ username, password, role: 'user' });
+    users.push({ username, password: hashedPassword, role: 'user' });
     saveUsers(users);
     showMsg(msg, 'Cadastro realizado! Faça login.', 'success');
     formCadastro.reset();
@@ -353,20 +697,53 @@ function showMsg(el, text, type) {
   setTimeout(() => { el.className = 'msg'; }, 4000);
 }
 
-// --- HEADER ---
+// --- HEADER (sem innerHTML com dados do usuário) ---
 function updateHeader() {
   const session = getSession();
   const navUser = document.getElementById('nav-user');
+  const btnLogin = document.querySelector('a.btn-login');
+
   if (!navUser) return;
-  if (session) {
-    navUser.innerHTML = `<span style="color:#ffcb05">Olá, ${session.username}</span>
-      <a href="#" onclick="logout()" style="margin-left:12px;color:#fff">Sair</a>`;
+
+  if (session && isSessionValid()) {
+    // Oculta o botão Login
+    if (btnLogin) btnLogin.style.display = 'none';
+
+    // Mostra nome + botão Sair
+    const span = document.createElement('span');
+    span.style.color = '#ffcb05';
+    span.textContent = `Olá, ${session.username}`;
+
+    const link = document.createElement('a');
+    link.href = '#';
+    link.style.cssText = 'margin-left:12px;color:#fff';
+    link.textContent = 'Sair';
+    link.addEventListener('click', logout);
+
+    navUser.innerHTML = '';
+    navUser.appendChild(span);
+    navUser.appendChild(link);
+  } else {
+    // Garante que o botão Login aparece se não estiver logado
+    if (btnLogin) btnLogin.style.display = '';
+    navUser.innerHTML = '';
   }
 }
 
 // --- INIT ---
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  // Proteção contra clickjacking
+  preventClickjacking();
+
+  // Verifica validade da sessão ao carregar qualquer página
+  if (getSession() && !isSessionValid()) {
+    showToast('Sua sessão expirou. Faça login novamente.');
+    setTimeout(() => { window.location.href = 'login.html'; }, 1500);
+    return;
+  }
+
   seedCards();
+  await seedAdmin();
   renderCards();
   renderTypeFilters();
   initSearch();
@@ -374,8 +751,13 @@ document.addEventListener('DOMContentLoaded', () => {
   initAdminEdit();
   initAdminDelete();
   initLogin();
+  initPasswordStrength();
   updateHeader();
   updateCartBadge();
+  renderMyCards();
+
+  // Inicia watcher de inatividade se houver sessão ativa
+  initInactivityWatcher();
 
   document.getElementById('link-cadastro')?.addEventListener('click', toggleForms);
   document.getElementById('link-login')?.addEventListener('click', toggleForms);
